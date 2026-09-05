@@ -1,0 +1,28 @@
+# O catálogo (lakehouse_rotaperfume) NÃO está aqui: a conta usa Default Storage,
+# e nessa configuração a API do Unity Catalog recusa criar catálogo sem uma
+# MANAGED LOCATION explícita (400 INVALID_STATE, "Metastore storage root URL
+# does not exist"). Descoberto tentando `bundle deploy` com um resources.catalogs
+# aqui. O catálogo é criado à parte por scripts/criar-catalogo.sh (via SQL), e
+# só então este arquivo entra: schemas e volume dentro dele.
+resources:
+  schemas:
+    bronze:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: Dados brutos carregados como tabelas, um-para-um com os arquivos de origem — sem regra de negócio aplicada.
+    silver:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: Dados limpos e conformados — tipos corretos, chaves resolvidas, duplicidade tratada.
+    gold:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: Métricas e agregações prontas para consumo em dashboards e relatórios de negócio.
+
+  volumes:
+    raw:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.bronze.name}
+      name: raw
+      volume_type: MANAGED
+      comment: Landing zone dos CSVs originais do ERP e do CRM, byte a byte, antes de qualquer processamento.
