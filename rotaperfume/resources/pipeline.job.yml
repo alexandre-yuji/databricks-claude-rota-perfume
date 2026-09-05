@@ -23,6 +23,9 @@
 #                              depends_on ml_features)
 #  11. ml_fila                 (gold.fila_semanal + as 4 funções do agente;
 #                              depends_on ml_modelo)
+#  12. gold_retorno_ligacao     (gold.retorno_ligacao — a única tabela cujo dado
+#                              não vem do pipeline; CREATE TABLE IF NOT EXISTS;
+#                              depends_on gold_marts, em paralelo com o resto)
 resources:
   jobs:
     rotaperfume_pipeline:
@@ -99,6 +102,13 @@ resources:
             warehouse_id: ${var.warehouse_id}
             file:
               path: ../src/gold/08-testes.sql
+        - task_key: gold_retorno_ligacao
+          depends_on:
+            - task_key: gold_marts
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/gold/11-retorno-ligacao.sql
         - task_key: metricas_de_negocio
           depends_on:
             - task_key: gold_marts

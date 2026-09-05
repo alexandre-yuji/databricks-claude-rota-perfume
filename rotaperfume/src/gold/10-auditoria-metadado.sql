@@ -13,19 +13,21 @@ SELECT CASE WHEN n = 0 THEN 'OK: todas as tabelas/views da gold têm COMMENT'
        END AS checagem_1
 FROM problema;
 
--- 2) toda coluna de fato_vendas e das 6 views de negócio precisa de COMMENT
+-- 2) toda coluna de fato_vendas, das 6 views de negócio, de fila_semanal e de
+-- retorno_ligacao precisa de COMMENT
 WITH problema AS (
   SELECT COUNT(*) AS n, array_join(collect_list(table_name || '.' || column_name), ', ') AS lista
   FROM lakehouse_rotaperfume.information_schema.columns
   WHERE table_schema = 'gold'
     AND table_name IN (
       'fato_vendas', 'receita_mensal', 'ranking_marcas', 'margem_por_categoria',
-      'clientes_em_risco', 'efeito_lancamento', 'ruptura_por_marca'
+      'clientes_em_risco', 'efeito_lancamento', 'ruptura_por_marca',
+      'fila_semanal', 'retorno_ligacao'
     )
     AND (comment IS NULL OR comment = '')
 )
-SELECT CASE WHEN n = 0 THEN 'OK: todas as colunas de fato_vendas/views têm COMMENT'
-            ELSE raise_error('Colunas sem COMMENT em fato_vendas/views de negócio: ' || lista)
+SELECT CASE WHEN n = 0 THEN 'OK: todas as colunas dessas tabelas/views têm COMMENT'
+            ELSE raise_error('Colunas sem COMMENT em fato_vendas/views/fila_semanal/retorno_ligacao: ' || lista)
        END AS checagem_2
 FROM problema;
 

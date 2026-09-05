@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {"id": "0a7d0501b70f94a94a880e13e47135fd", "question": ["Quanto vale a fila desta semana?"]},
+      {"id": "3c316d2a4cc1fb2f9f571c7ae4095d45", "question": ["Quais clientes estão em risco, e quanto isso representa em receita mensal perdida?"]},
+      {"id": "74639e77699de1ac2aa4e1b16abae5e8", "question": ["Quem eu ligo essa semana?"]},
+      {"id": "7a597303f9142dbb8fe68ddb08c18e91", "question": ["Quantas ligações já foram registradas e quantas viraram pedido?"]},
+      {"id": "b72b8ef2a05e1fd357db309efe30a8cd", "question": ["O modelo é bom?"]}
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "lakehouse_rotaperfume.gold.clientes_em_risco"},
+      {"identifier": "lakehouse_rotaperfume.gold.fila_semanal"},
+      {"identifier": "lakehouse_rotaperfume.gold.modelo_metricas"},
+      {"identifier": "lakehouse_rotaperfume.gold.ranking_marcas"},
+      {"identifier": "lakehouse_rotaperfume.gold.receita_mensal"},
+      {"identifier": "lakehouse_rotaperfume.gold.retorno_ligacao"},
+      {"identifier": "lakehouse_rotaperfume.gold.score_propensao"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "751a6c6debf71dbe777349a774176a15",
+        "content": [
+          "QUEM PERGUNTA: a direção comercial da Rota Perfume. Não escreve SQL e não decide sobre modelo — decide sobre LIGAÇÃO: quem contatar, se a fila está valendo a pena, o que já foi trabalhado. Respostas devem ser diretas, em português, sem jargão técnico.",
+          "O QUE É SCORE: probabilidade (0 a 1) de o cliente comprar nos próximos 7 dias, segundo o modelo @prod. faixa é a categoria do score (Fria/Morna/Quente/Muito quente). ordem é a posição do cliente na lista do vendedor dele (1 = maior prioridade). motivo explica, em português, por que aquele cliente está na fila.",
+          "A FILA É GLOBAL, NÃO É COTA POR VENDEDOR: os 200 contatos são os de maior score entre todos os clientes elegíveis, depois divididos por vendedor conforme a carteira de cada um. Um vendedor com carteira mais quente recebe mais contatos que outro — isso está CERTO, não é um erro a corrigir.",
+          "RECEITA ESPERADA DA FILA = SUM(score * ticket_medio), somando todos os 200 contatos de gold.fila_semanal. É uma ESTIMATIVA baseada na probabilidade do modelo — NUNCA a chame de receita realizada ou receita garantida.",
+          "A MÉTRICA DA DIREÇÃO É lift_top200 (de gold.modelo_metricas): quantas vezes a fila do modelo converte mais que ligar às cegas. NUNCA cite AUC para responder pergunta de negócio — AUC é métrica de quem treina o modelo, não de quem decide ligação. Se precisar dizer se o modelo é bom, use lift_top200 e/ou acertos_top200, nunca auc.",
+          "gold.retorno_ligacao COMEÇA VAZIA. Se a contagem vier zero, diga explicitamente que ninguém registrou retorno de ligação ainda — nunca invente um número, e nunca use a fila (fila_semanal) como se fosse retorno registrado: fila é quem tem que ligar, retorno é o que aconteceu depois.",
+          "UM CLIENTE PODE TER MAIS DE UM RETORNO em gold.retorno_ligacao (ligações diferentes ao longo do tempo). Para o estado ATUAL de um cliente, use sempre o retorno mais recente por registrado_em (ex.: ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY registrado_em DESC) = 1), nunca some ou conte todos os retornos como se fossem eventos independentes do mesmo cliente.",
+          "SAZONALIDADE É INVERTIDA: o pico de vendas do setor é o mês ANTERIOR à data comemorativa (abril, junho, outubro). Dezembro e janeiro são vale ESPERADO e SAUDÁVEL, não queda — confira receita_mensal.mes_pico_setor antes de qualificar um mês como bom ou ruim.",
+          "NUNCA use o schema bronze. Use só as sete tabelas listadas nesta agente, todas do schema gold."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "5376eba84de67b885b9b80c072b79826",
+        "question": ["Quanto vale a fila desta semana?"],
+        "sql": ["SELECT ROUND(SUM(score * ticket_medio), 2) AS receita_esperada_estimativa FROM lakehouse_rotaperfume.gold.fila_semanal"]
+      },
+      {
+        "id": "75d1e1af83d5cee177e25d136f8b250a",
+        "question": ["O modelo é bom?"],
+        "sql": ["SELECT lift_top200, acertos_top200, ROUND(taxa_base, 4) AS taxa_base FROM lakehouse_rotaperfume.gold.modelo_metricas ORDER BY versao DESC LIMIT 1"]
+      },
+      {
+        "id": "a5ed19d2dea19bd892a3175f7f187873",
+        "question": ["Quantas ligações já foram registradas e quantas viraram pedido?"],
+        "sql": ["WITH atual AS (SELECT *, ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY registrado_em DESC) AS rn FROM lakehouse_rotaperfume.gold.retorno_ligacao) SELECT COUNT(*) AS ligacoes_registradas, COUNT(*) FILTER (WHERE status = 'vendeu') AS viraram_pedido FROM atual WHERE rn = 1"]
+      },
+      {
+        "id": "e0d8dc3eee1c79c831500e78837289ef",
+        "question": ["Quem eu ligo essa semana?"],
+        "sql": ["SELECT vendedor, ordem, razao_social, cidade, ROUND(score, 2) AS score, faixa, motivo, sugestao FROM lakehouse_rotaperfume.gold.fila_semanal ORDER BY score DESC"]
+      },
+      {
+        "id": "e1a446088c0e3f7e396fcd312710a79d",
+        "question": ["Quais clientes estão em risco, e quanto isso representa em receita mensal perdida?"],
+        "sql": ["SELECT COUNT(*) AS clientes_em_risco, ROUND(SUM(receita_media_mensal_antes_de_sumir), 2) AS receita_mensal_perdida FROM lakehouse_rotaperfume.gold.clientes_em_risco"]
+      }
+    ]
+  }
+}
