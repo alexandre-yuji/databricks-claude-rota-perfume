@@ -1,0 +1,7 @@
+resources:
+  genie_spaces:
+    genie_comercial:
+      title: "Rota Perfume · Comercial"
+      description: "Genie space da diretoria comercial: receita, margem, marcas, categorias, clientes em risco, ruptura e atingimento de meta — só sobre a camada gold, com a regra de sazonalidade do setor."
+      file_path: comercial.geniespace.json
+      warehouse_id: ${var.warehouse_id}

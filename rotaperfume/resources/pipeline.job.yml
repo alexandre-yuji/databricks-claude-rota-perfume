@@ -11,9 +11,10 @@
 #   5. gold_fato_vendas    (silver -> gold: fato_vendas, grão item de pedido;
 #                           depends_on gold_dimensoes)
 #   6. gold_marts          (gold: 3 marts sobre o mesmo fato; depends_on gold_fato_vendas)
-#   7. testes              (9 testes de qualidade, param o job se falhar;
-#                           depends_on gold_marts — sempre por último)
-#   8. gold_publicacao     (gold -> dashboard/consumo)
+#   7. testes                 (9 testes de qualidade, param o job se falhar;
+#                              depends_on gold_marts, em paralelo com o item 8)
+#   8. metricas_de_negocio    (gold: 6 views com nome de negócio; depends_on gold_marts)
+#      auditoria_de_metadado  (quebra se faltar COMMENT na gold; depends_on metricas_de_negocio)
 resources:
   jobs:
     rotaperfume_pipeline:
@@ -90,6 +91,20 @@ resources:
             warehouse_id: ${var.warehouse_id}
             file:
               path: ../src/gold/08-testes.sql
+        - task_key: metricas_de_negocio
+          depends_on:
+            - task_key: gold_marts
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/gold/09-metricas-negocio.sql
+        - task_key: auditoria_de_metadado
+          depends_on:
+            - task_key: metricas_de_negocio
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/gold/10-auditoria-metadado.sql
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: America/Sao_Paulo

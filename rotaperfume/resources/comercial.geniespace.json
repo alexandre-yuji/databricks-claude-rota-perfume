@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {"id": "1d1ac528c83cefe3aa3d56ba7cb29dae", "question": ["Quais clientes pararam de comprar, e quanta receita a gente perdeu com isso?"]},
+      {"id": "4fc7adb9ab7bf191313b2d1637ab176b", "question": ["Qual marca tem mais ruptura de estoque?"]},
+      {"id": "549001d83c011b0a1028862b4756549d", "question": ["Qual é a margem por categoria de produto?"]},
+      {"id": "bd0f5f720ce407611f0fa87b967e8106", "question": ["Quais marcas mais venderam nos últimos 6 meses?"]},
+      {"id": "e0cb0310d7d987bafc21814720ee98c8", "question": ["Qual vendedor está mais perto de bater a meta este mês?"]},
+      {"id": "f499cef2f990de3aea0e530b9ee52e66", "question": ["Dezembro foi um mês ruim?"]}
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "lakehouse_rotaperfume.gold.clientes_em_risco"},
+      {"identifier": "lakehouse_rotaperfume.gold.dim_calendario"},
+      {"identifier": "lakehouse_rotaperfume.gold.dim_cliente"},
+      {"identifier": "lakehouse_rotaperfume.gold.dim_produto"},
+      {"identifier": "lakehouse_rotaperfume.gold.dim_vendedor"},
+      {"identifier": "lakehouse_rotaperfume.gold.efeito_lancamento"},
+      {"identifier": "lakehouse_rotaperfume.gold.fato_vendas"},
+      {"identifier": "lakehouse_rotaperfume.gold.margem_por_categoria"},
+      {"identifier": "lakehouse_rotaperfume.gold.ranking_marcas"},
+      {"identifier": "lakehouse_rotaperfume.gold.receita_mensal"},
+      {"identifier": "lakehouse_rotaperfume.gold.ruptura_por_marca"}
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "0461eef0ac577c97f238d2c9c4818b2a",
+        "content": [
+          "CONTEXTO: a Rota Perfume é uma distribuidora B2B de perfumaria árabe — compra de fabricantes/importadores e revende para o varejo (perfumarias, farmácias, lojas de departamento, quiosques, salões de beleza, revendedoras autônomas). Os dados cobrem 24 meses, de setembro/2024 a agosto/2026.",
+          "Use SÓ as tabelas e views do schema gold listadas nesta agente. Nunca leia bronze ou silver — a bronze não tem nenhuma limpeza aplicada e vai dar números errados.",
+          "GLOSSÁRIO — ruptura: quando o saldo de estoque de um SKU chega a zero num snapshot (ver ruptura_por_marca). carteira: a relação entre um vendedor e os clientes que ele atende. oportunidade: um negócio em prospecção no funil comercial (Fechado ganho / Fechado perdido / aberto). devolução: item de pedido com quantidade negativa — entra na fato_vendas com quantidade e receita NEGATIVAS, nunca é descartada. SKU: código único de um produto. segmento: o tipo de negócio do cliente. atingimento de meta: receita do vendedor no mês dividida pela meta mensal dele, em %. curva ABC: classificação de produto pela receita acumulada no período inteiro (A até 80%, B até 95%, C o restante) — é do produto, não do mês.",
+          "REGRA DE SAZONALIDADE, A MAIS IMPORTANTE: o pico de vendas da distribuidora acontece no mês ANTERIOR à data comemorativa, porque o varejo compra o estoque antes da data. Abril (antes do Dia das Mães), junho (antes do Dia dos Namorados) e outubro (antes da Black Friday) são meses de PICO. Dezembro e janeiro são VALE — e isso é ESPERADO e SAUDÁVEL, não é queda. Nunca chame dezembro ou janeiro de mês ruim ou de queda de vendas sem checar receita_mensal.mes_pico_setor primeiro: se mes_pico_setor for false e a receita for menor que a média, isso é o comportamento normal do setor, não um problema do negócio.",
+          "CÁLCULO DAS MÉTRICAS: receita = SUM(receita) em fato_vendas (já vem líquida, inclui devolução negativa). receita bruta vendida (sem efeito de devolução) = SUM(receita) FILTER (WHERE NOT devolucao). margem = SUM(margem) — receita menos custo do produto, não considera desconto comercial nem frete. margem % = 100 * SUM(margem) / SUM(receita). ticket médio = SUM(receita) / COUNT(DISTINCT pedido_id). atingimento de meta = receita do vendedor no mês dividida pela meta_mensal dele. churn / cliente em risco = cliente sem nenhum pedido há mais de 90 dias (clientes_em_risco.dias_sem_comprar > 90).",
+          "AVISO SOBRE DEVOLUÇÃO: ela entra com valor NEGATIVO dentro de receita, custo e margem em fato_vendas, de propósito. Se a pergunta for sobre o bruto vendido (sem o efeito da devolução), filtre devolucao = false."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "08c7f286fa51cb446605a797573df92e",
+        "question": ["Dezembro foi um mês ruim?"],
+        "sql": ["SELECT ano, mes, receita, mes_pico_setor FROM lakehouse_rotaperfume.gold.receita_mensal WHERE mes = 12 ORDER BY ano"]
+      },
+      {
+        "id": "57fbbb73316bff57e1e098713241e479",
+        "question": ["Qual marca tem mais ruptura de estoque?"],
+        "sql": ["SELECT marca, snapshots, snapshots_em_ruptura, ruptura_pct FROM lakehouse_rotaperfume.gold.ruptura_por_marca ORDER BY ruptura_pct DESC"]
+      },
+      {
+        "id": "5a0cd7d2fd1c4bca46868a1133420ce7",
+        "question": ["Quais marcas mais venderam nos últimos 6 meses?"],
+        "sql": ["SELECT marca, ROUND(SUM(receita)/1e6, 1) AS receita_mi FROM lakehouse_rotaperfume.gold.fato_vendas WHERE data_pedido >= add_months(current_date(), -6) GROUP BY marca ORDER BY 2 DESC LIMIT 5"]
+      },
+      {
+        "id": "86eb00a6ac1dc6d5aab7aa70fcec3e53",
+        "question": ["Quais clientes pararam de comprar, e quanta receita mensal a gente perdeu com isso?"],
+        "sql": ["SELECT COUNT(*) AS clientes_em_risco, ROUND(SUM(receita_media_mensal_antes_de_sumir), 2) AS receita_mensal_perdida FROM lakehouse_rotaperfume.gold.clientes_em_risco"]
+      },
+      {
+        "id": "abaa92ec06eeaeda55a0ed7e3133c64d",
+        "question": ["Qual vendedor está mais perto de bater a meta este mês?"],
+        "sql": ["SELECT v.nome, f.ano, f.mes, ROUND(SUM(f.receita), 2) AS receita, v.meta_mensal, ROUND(100 * SUM(f.receita) / v.meta_mensal, 1) AS atingimento_pct FROM lakehouse_rotaperfume.gold.fato_vendas f JOIN lakehouse_rotaperfume.gold.dim_vendedor v ON v.vendedor_id = f.vendedor_id GROUP BY v.nome, f.ano, f.mes, v.meta_mensal ORDER BY f.ano DESC, f.mes DESC, atingimento_pct DESC LIMIT 10"]
+      },
+      {
+        "id": "acd03381a9406ca3a67e20436a9aa787",
+        "question": ["Qual é a margem por categoria de produto, da pior para a melhor?"],
+        "sql": ["SELECT categoria, receita, margem, margem_pct FROM lakehouse_rotaperfume.gold.margem_por_categoria ORDER BY margem_pct ASC"]
+      }
+    ]
+  }
+}
