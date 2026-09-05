@@ -23,7 +23,7 @@ filtráveis por vendedor e o Genie do prompt 1 embutido. **Deploy nº 2.**
 | Genie `Rota do Perfume · Direção` | criado no prompt 1 — é o que entra na aba *Perguntar* |
 
 `databricks apps list` volta **vazio**: não há nenhum app no workspace. O
-warehouse `Serverless Starter Warehouse` (`666be37e3fededf2`) precisa estar
+warehouse `Serverless Starter Warehouse` (`869f5987fba5e50f`) precisa estar
 **ligado** antes de começar — o typegen depende dele.
 
 ---
@@ -61,7 +61,7 @@ ORDER  BY score DESC;
 **3 · Ligue o warehouse, na frente da sala**
 
 ```bash
-databricks warehouses start 666be37e3fededf2 --profile projeto-dados-ia
+databricks warehouses start 869f5987fba5e50f --profile rota-perfume
 ```
 
 > *"Vou explicar daqui a pouco por que isso não é frescura."*
@@ -94,18 +94,18 @@ databricks warehouses start 666be37e3fededf2 --profile projeto-dados-ia
 
 ```
 Crie um Databricks App para a direção comercial da Rota do Perfume, em
-aulas/aula-04-app-e-genie/. Ele lê o que a noite 3 produziu — nenhuma tabela
-nova.
+rotaperfume-direcao/ (raiz do repositório, ao lado de rotaperfume/). Ele lê o
+que a noite 3 produziu — nenhuma tabela nova.
 
 1. O SCAFFOLD
 
    databricks apps init --name rotaperfume-direcao \
      --features analytics,genie \
-     --set analytics.sql-warehouse.id=666be37e3fededf2 \
+     --set analytics.sql-warehouse.id=869f5987fba5e50f \
      --set genie.genie-space.id=<o id do space "Rota do Perfume · Direção"> \
      --set genie.genie-space.name="Rota do Perfume · Direção" \
      --description "A fila dos 200 na tela do diretor" \
-     --run none --profile projeto-dados-ia
+     --run none --profile rota-perfume
 
    Pegue o id do space com `databricks bundle summary --target dev` no bundle
    da noite 2, ou com `databricks genie list-spaces`. NÃO invente o id.
@@ -176,8 +176,8 @@ nova.
 
 5. SUBA E ME MOSTRE A URL
 
-   databricks apps validate --profile projeto-dados-ia
-   databricks apps deploy -t default --profile projeto-dados-ia
+   databricks apps validate --profile rota-perfume
+   databricks apps deploy -t default --profile rota-perfume
 
    O target chama `default`, não `dev`. E é `apps deploy`, não
    `bundle deploy`: um bundle deploy cria o app parado, sem URL.
@@ -190,7 +190,7 @@ nova.
 **1 · O app está de pé, e a URL existe**
 
 ```bash
-databricks apps get rotaperfume-direcao --profile projeto-dados-ia -o json | \
+databricks apps get rotaperfume-direcao --profile rota-perfume -o json | \
   python3 -c "import json,sys; d=json.load(sys.stdin); print(d['url']); print(d['app_status'], d['compute_status'])"
 # app_status RUNNING · compute_status ACTIVE
 ```
@@ -243,7 +243,7 @@ duas portas.
 | `dev: no such target` | o bundle do app usa `default` | `-t default` |
 | App criado mas parado, sem URL | rodou `bundle deploy` | `databricks apps deploy` |
 | `failed to acquire deployment lock` | dois deploys ao mesmo tempo | Espere o primeiro terminar |
-| `Unexpectedly failed to update app's compute size` | erro transitório do Free Edition | Rode o `apps deploy` de novo. Resolveu na segunda tentativa |
+| `Unexpectedly failed to update app's compute size` | erro transitório de compute | Rode o `apps deploy` de novo. Resolveu na segunda tentativa |
 | O chat do Genie não carrega | space id errado no `databricks.yml` | Confira com `databricks genie list-spaces` |
 | Aparece `582799.4988012867` na tela | o valor chegou como string; `toLocaleString` não formatou | `Number(v)` antes de formatar. O tipo diz `number`, o runtime entrega `string` |
 | Uma soma dá `712` em vez de `19` | concatenação de strings | Mesmo motivo: `Number()` antes de somar |

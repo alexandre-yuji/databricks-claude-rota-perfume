@@ -116,7 +116,7 @@ na mesma posição da fila** — e é isso que a empresa faz hoje.
 ## O prompt
 
 ```
-Continue o bundle em aulas/aula-02-engenharia-de-dados/rotaperfume/.
+Continue o bundle em rotaperfume/.
 A gold está pronta, testada e com metadado auditado. Começa a camada de ML.
 
 Crie src/ml/11-features.py — um notebook Python para serverless.

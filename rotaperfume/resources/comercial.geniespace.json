@@ -2,12 +2,14 @@
   "version": 2,
   "config": {
     "sample_questions": [
+      {"id": "1a3f9bf60a2fbc33ab9a2189ea0dd74f", "question": ["Quem eu ligo essa semana?"]},
       {"id": "1d1ac528c83cefe3aa3d56ba7cb29dae", "question": ["Quais clientes pararam de comprar, e quanta receita a gente perdeu com isso?"]},
       {"id": "4fc7adb9ab7bf191313b2d1637ab176b", "question": ["Qual marca tem mais ruptura de estoque?"]},
       {"id": "549001d83c011b0a1028862b4756549d", "question": ["Qual é a margem por categoria de produto?"]},
       {"id": "bd0f5f720ce407611f0fa87b967e8106", "question": ["Quais marcas mais venderam nos últimos 6 meses?"]},
       {"id": "e0cb0310d7d987bafc21814720ee98c8", "question": ["Qual vendedor está mais perto de bater a meta este mês?"]},
-      {"id": "f499cef2f990de3aea0e530b9ee52e66", "question": ["Dezembro foi um mês ruim?"]}
+      {"id": "f499cef2f990de3aea0e530b9ee52e66", "question": ["Dezembro foi um mês ruim?"]},
+      {"id": "f59c80f500913bdb6735b3716cb9c824", "question": ["Por que a Perfumaria Aurora está no topo da minha lista?"]}
     ]
   },
   "data_sources": {
@@ -19,10 +21,12 @@
       {"identifier": "lakehouse_rotaperfume.gold.dim_vendedor"},
       {"identifier": "lakehouse_rotaperfume.gold.efeito_lancamento"},
       {"identifier": "lakehouse_rotaperfume.gold.fato_vendas"},
+      {"identifier": "lakehouse_rotaperfume.gold.fila_semanal"},
       {"identifier": "lakehouse_rotaperfume.gold.margem_por_categoria"},
       {"identifier": "lakehouse_rotaperfume.gold.ranking_marcas"},
       {"identifier": "lakehouse_rotaperfume.gold.receita_mensal"},
-      {"identifier": "lakehouse_rotaperfume.gold.ruptura_por_marca"}
+      {"identifier": "lakehouse_rotaperfume.gold.ruptura_por_marca"},
+      {"identifier": "lakehouse_rotaperfume.gold.score_propensao"}
     ]
   },
   "instructions": {
@@ -35,9 +39,16 @@
           "GLOSSÁRIO — ruptura: quando o saldo de estoque de um SKU chega a zero num snapshot (ver ruptura_por_marca). carteira: a relação entre um vendedor e os clientes que ele atende. oportunidade: um negócio em prospecção no funil comercial (Fechado ganho / Fechado perdido / aberto). devolução: item de pedido com quantidade negativa — entra na fato_vendas com quantidade e receita NEGATIVAS, nunca é descartada. SKU: código único de um produto. segmento: o tipo de negócio do cliente. atingimento de meta: receita do vendedor no mês dividida pela meta mensal dele, em %. curva ABC: classificação de produto pela receita acumulada no período inteiro (A até 80%, B até 95%, C o restante) — é do produto, não do mês.",
           "REGRA DE SAZONALIDADE, A MAIS IMPORTANTE: o pico de vendas da distribuidora acontece no mês ANTERIOR à data comemorativa, porque o varejo compra o estoque antes da data. Abril (antes do Dia das Mães), junho (antes do Dia dos Namorados) e outubro (antes da Black Friday) são meses de PICO. Dezembro e janeiro são VALE — e isso é ESPERADO e SAUDÁVEL, não é queda. Nunca chame dezembro ou janeiro de mês ruim ou de queda de vendas sem checar receita_mensal.mes_pico_setor primeiro: se mes_pico_setor for false e a receita for menor que a média, isso é o comportamento normal do setor, não um problema do negócio.",
           "CÁLCULO DAS MÉTRICAS: receita = SUM(receita) em fato_vendas (já vem líquida, inclui devolução negativa). receita bruta vendida (sem efeito de devolução) = SUM(receita) FILTER (WHERE NOT devolucao). margem = SUM(margem) — receita menos custo do produto, não considera desconto comercial nem frete. margem % = 100 * SUM(margem) / SUM(receita). ticket médio = SUM(receita) / COUNT(DISTINCT pedido_id). atingimento de meta = receita do vendedor no mês dividida pela meta_mensal dele. churn / cliente em risco = cliente sem nenhum pedido há mais de 90 dias (clientes_em_risco.dias_sem_comprar > 90).",
-          "AVISO SOBRE DEVOLUÇÃO: ela entra com valor NEGATIVO dentro de receita, custo e margem em fato_vendas, de propósito. Se a pergunta for sobre o bruto vendido (sem o efeito da devolução), filtre devolucao = false."
+          "AVISO SOBRE DEVOLUÇÃO: ela entra com valor NEGATIVO dentro de receita, custo e margem em fato_vendas, de propósito. Se a pergunta for sobre o bruto vendido (sem o efeito da devolução), filtre devolucao = false.",
+          "FILA DA SEMANA E FERRAMENTAS: fila_semanal traz os 200 clientes de maior score para ligar essa semana, um vendedor por vez (coluna vendedor), já em ordem de prioridade (coluna ordem) — não é cota igual por vendedor. Use sempre as tabelas e funções deste espaço. Nunca invente número, nome de cliente ou quantidade de estoque."
         ]
       }
+    ],
+    "sql_functions": [
+      {"id": "57f751be32385f5ef2885c8b5389545b", "identifier": "lakehouse_rotaperfume.gold.sugerir_produtos"},
+      {"id": "70846146669cefaedf2180c32b2e540b", "identifier": "lakehouse_rotaperfume.gold.contexto_cliente"},
+      {"id": "e0841a711709b831d2b8cb6756d2e84d", "identifier": "lakehouse_rotaperfume.gold.priorizar_carteira"},
+      {"id": "e68385d93bd0c701e97cdcdcc2a8abbc", "identifier": "lakehouse_rotaperfume.gold.checar_disponibilidade"}
     ],
     "example_question_sqls": [
       {

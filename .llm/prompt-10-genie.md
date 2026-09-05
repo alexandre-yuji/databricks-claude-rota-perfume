@@ -97,7 +97,7 @@ A resposta que quase sempre aparece é "não criaria". E aí:
 ## O prompt
 
 ```
-Continue o bundle em aulas/aula-02-engenharia-de-dados/rotaperfume/.
+Continue o bundle em rotaperfume/.
 A noite 3 deixou gold.fila_semanal com 200 contatos e gold.score_propensao
 com a nota de todos os clientes. Hoje eu quero duas coisas: a tabela onde o
 time registra o que aconteceu depois da ligação, e um Genie space feito para
@@ -167,9 +167,9 @@ a direção.
    recriar as perguntas nem sujar o diff do Git.
 
 3. Rode, e me mostre o resultado:
-   databricks bundle validate --target dev --profile projeto-dados-ia
-   databricks bundle deploy   --target dev --profile projeto-dados-ia
-   bash scripts/rodar-tarefa.sh projeto-dados-ia gold_retorno_ligacao
+   databricks bundle validate --target dev --profile rota-perfume
+   databricks bundle deploy   --target dev --profile rota-perfume
+   bash scripts/rodar-tarefa.sh rota-perfume gold_retorno_ligacao
 
    NÃO use --auto-approve. Se o deploy pedir para apagar o dashboard ou o
    genie_comercial, pare e me avise.
@@ -197,7 +197,7 @@ WHERE  table_schema = 'gold' AND table_name = 'retorno_ligacao'
 **2 · O segundo space existe, e o primeiro continua de pé**
 
 ```bash
-databricks genie list-spaces --profile projeto-dados-ia
+databricks genie list-spaces --profile rota-perfume
 # tem que listar DOIS spaces do projeto: · Comercial e · Direção
 ```
 
@@ -232,7 +232,7 @@ ALTER TABLE lakehouse_rotaperfume.gold.retorno_ligacao
 ```
 
 ```bash
-bash scripts/rodar-tarefa.sh projeto-dados-ia auditoria_de_metadado   # FAILED
+bash scripts/rodar-tarefa.sh rota-perfume auditoria_de_metadado   # FAILED
 ```
 
 Metadado faltando é bug, não pendência de documentação — e a regra da noite 2

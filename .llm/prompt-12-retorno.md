@@ -159,8 +159,8 @@ o que aconteceu na ligação.
    Em TABLE, não em SCHEMA. O app não pode alterar mais nada da gold.
 
 6. Suba:
-   databricks apps validate --profile projeto-dados-ia
-   databricks apps deploy -t default --profile projeto-dados-ia
+   databricks apps validate --profile rota-perfume
+   databricks apps deploy -t default --profile rota-perfume
 ```
 
 ---
@@ -231,4 +231,4 @@ DELETE FROM lakehouse_rotaperfume.gold.retorno_ligacao;
 | Erro de tipo no `executeStatement` | `serviceDatabricksClient` não existe | O contexto expõe `client` e `warehouseId` |
 | O POST devolve 400 dizendo que `cliente_id` não é número | a tela mandou `"2137"`, string | `z.coerce.number().int()` no servidor e `Number()` na tela |
 | O gráfico do acompanhamento não aparece | ninguém registrou nada ainda | É o estado vazio, e ele está certo. Registre um retorno |
-| Deploy falha na primeira tentativa | erro transitório de compute do Free Edition | Rode o `apps deploy` de novo |
+| Deploy falha na primeira tentativa | erro transitório de compute | Rode o `apps deploy` de novo |

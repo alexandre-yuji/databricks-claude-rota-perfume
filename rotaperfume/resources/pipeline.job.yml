@@ -15,6 +15,14 @@
 #                              depends_on gold_marts, em paralelo com o item 8)
 #   8. metricas_de_negocio    (gold: 6 views com nome de negócio; depends_on gold_marts)
 #      auditoria_de_metadado  (quebra se faltar COMMENT na gold; depends_on metricas_de_negocio)
+#   9. ml_features            (gold: features_treino + features_cliente; depends_on
+#                              testes E auditoria_de_metadado — as duas checagens
+#                              de qualidade da gold)
+#  10. ml_modelo               (treina, registra em @prod e pontua gold.score_propensao,
+#                              gold.modelo_metricas, gold.calibragem_holdout;
+#                              depends_on ml_features)
+#  11. ml_fila                 (gold.fila_semanal + as 4 funções do agente;
+#                              depends_on ml_modelo)
 resources:
   jobs:
     rotaperfume_pipeline:
@@ -105,6 +113,28 @@ resources:
             warehouse_id: ${var.warehouse_id}
             file:
               path: ../src/gold/10-auditoria-metadado.sql
+        - task_key: ml_features
+          depends_on:
+            - task_key: testes
+            - task_key: auditoria_de_metadado
+          notebook_task:
+            notebook_path: ../src/ml/11-features.py
+            base_parameters:
+              catalog: ${var.catalog}
+        - task_key: ml_modelo
+          depends_on:
+            - task_key: ml_features
+          notebook_task:
+            notebook_path: ../src/ml/12-modelo.py
+            base_parameters:
+              catalog: ${var.catalog}
+        - task_key: ml_fila
+          depends_on:
+            - task_key: ml_modelo
+          sql_task:
+            warehouse_id: ${var.warehouse_id}
+            file:
+              path: ../src/ml/13-fila.sql
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: America/Sao_Paulo
